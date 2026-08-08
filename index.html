@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WebHub — Lanceur de Web Apps</title>
+<meta name="description" content="WebHub regroupe toutes vos Web Apps dans une seule interface.">
+<meta name="theme-color" content="#0B1F3F">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#00E5D0"/><circle cx="256" cy="150" r="46" fill="#0B1F3F"/><circle cx="140" cy="330" r="40" fill="#0B1F3F"/><circle cx="372" cy="330" r="40" fill="#0B1F3F"/><path d="M256 196 L256 260 M256 260 L160 310 M256 260 L352 310" stroke="#0B1F3F" stroke-width="24" stroke-linecap="round" fill="none"/></svg>
+    <span>WebHub</span>
+  </div>
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="search-input" type="text" placeholder="Rechercher une Web App…" aria-label="Rechercher une Web App">
+  </div>
+  <div class="topbar-spacer"></div>
+  <button id="theme-toggle" class="icon-btn" title="Changer de thème" aria-label="Changer de thème">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+  </button>
+  <button id="settings-btn" class="icon-btn" title="Paramètres" aria-label="Paramètres">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+  </button>
+</header>
+
+<!-- ======================= Vue Accueil ======================= -->
+<main id="home-view" class="view">
+  <div class="home-inner">
+    <div class="filters">
+      <div id="filter-chips"></div>
+      <div class="filters-spacer"></div>
+      <select id="sort-select" class="sort-select" aria-label="Trier">
+        <option value="name">Trier par nom</option>
+        <option value="recent">Plus récentes</option>
+      </select>
+    </div>
+
+    <div id="app-grid" class="app-grid"></div>
+
+    <div id="empty-state" class="empty-state hidden">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+      <p>Aucune Web App ne correspond. Ajoutez-en une avec le bouton +.</p>
+    </div>
+  </div>
+</main>
+
+<!-- ======================= Vue Paramètres ======================= -->
+<main id="settings-view" class="view hidden">
+  <header class="topbar" style="position: static;">
+    <button id="back-from-settings" class="icon-btn" aria-label="Retour">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <span class="brand"><span>Paramètres</span></span>
+  </header>
+
+  <div class="settings-list">
+    <div class="settings-group">
+      <h4>Apparence</h4>
+      <div id="theme-switch-row" class="settings-row">
+        <div class="label"><strong>Mode sombre</strong><span>Basculer entre thème clair et sombre</span></div>
+        <div class="switch"></div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h4>Application</h4>
+      <div class="settings-row">
+        <div class="label"><strong>Installer WebHub</strong><span>Ajouter WebHub à l'écran d'accueil</span></div>
+        <button id="install-btn" class="btn btn-primary hidden">Installer</button>
+      </div>
+      <div class="settings-row">
+        <div class="label"><strong>Vider le cache</strong><span>Supprime les fichiers hors-ligne de WebHub</span></div>
+        <button id="clear-cache-btn" class="btn btn-ghost">Vider</button>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h4>Données</h4>
+      <div class="settings-row">
+        <div class="label"><strong>Exporter</strong><span>Télécharger la liste des Web Apps en JSON</span></div>
+        <button id="export-btn" class="btn btn-ghost">Exporter</button>
+      </div>
+      <div class="settings-row">
+        <div class="label"><strong>Importer</strong><span>Restaurer une sauvegarde JSON</span></div>
+        <button id="import-btn" class="btn btn-ghost">Importer</button>
+        <input id="import-input" type="file" accept="application/json" class="hidden">
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h4>À propos</h4>
+      <div class="settings-row">
+        <div class="label"><strong>Version</strong><span class="mono" id="version-label">1.0.0</span></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ======================= Bouton flottant ======================= -->
+<button id="fab-add" class="fab" title="Ajouter une Web App" aria-label="Ajouter une Web App">+</button>
+
+<!-- ======================= Modale ajout/édition ======================= -->
+<div id="add-modal-backdrop" class="modal-backdrop hidden">
+  <div class="modal">
+    <h2 id="modal-title">Ajouter une Web App</h2>
+    <form id="app-form">
+      <div class="field">
+        <label for="field-name">Nom</label>
+        <input id="field-name" type="text" maxlength="40" required>
+      </div>
+      <div class="field">
+        <label for="field-description">Description</label>
+        <input id="field-description" type="text" maxlength="80">
+      </div>
+      <div class="field">
+        <label for="field-url">URL (HTTPS uniquement)</label>
+        <input id="field-url" type="url" placeholder="https://…" required>
+      </div>
+      <div class="field">
+        <label for="field-icon">Icône (emoji)</label>
+        <input id="field-icon" type="text" maxlength="4" placeholder="📱">
+      </div>
+      <div class="field">
+        <label for="field-category">Catégorie</label>
+        <input id="field-category" type="text" maxlength="24" placeholder="Éducation, Boutique…">
+      </div>
+      <div class="field">
+        <label>Couleur</label>
+        <div id="color-row" class="color-row"></div>
+      </div>
+      <p id="form-error" class="error-text"></p>
+      <div class="modal-actions">
+        <button type="button" id="delete-app-btn" class="btn btn-danger hidden">Supprimer</button>
+        <button type="button" id="cancel-modal" class="btn btn-ghost">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ======================= Visionneuse Web App ======================= -->
+<div id="viewer-view" class="viewer hidden">
+  <div class="viewer-topbar">
+    <button id="viewer-back" class="icon-btn" aria-label="Retour">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <span id="viewer-title" class="viewer-title"></span>
+    <button id="viewer-refresh" class="icon-btn" title="Actualiser" aria-label="Actualiser">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+    </button>
+    <button id="viewer-share" class="icon-btn" title="Partager" aria-label="Partager">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+    </button>
+    <button id="viewer-fullscreen" class="icon-btn" title="Plein écran" aria-label="Plein écran">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3M16 3h3a2 2 0 012 2v3M8 21H5a2 2 0 01-2-2v-3M16 21h3a2 2 0 002-2v-3"/></svg>
+    </button>
+    <div style="position: relative;">
+      <button id="viewer-menu-btn" class="icon-btn" title="Menu" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+      </button>
+      <div id="viewer-menu-panel" class="menu-panel hidden">
+        <button id="viewer-open-external">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg>
+          Ouvrir dans un nouvel onglet
+        </button>
+        <button id="viewer-logout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+          Déconnexion
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="viewer-body">
+    <iframe id="viewer-frame" title="Contenu de la Web App" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads"></iframe>
+    <div id="viewer-loading" class="viewer-loading"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<div id="toast-stack" class="toast-stack"></div>
+
+<script>window.WEBHUB_VERSION = "1.0.0";</script>
+<script src="js/db.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
