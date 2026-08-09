@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">WebHub</string>
+    <string name="connection_error">Connexion impossible. Vérifiez votre accès Internet.</string>
+    <string name="offline_notice">Vous semblez hors ligne — affichage de la version en cache si disponible.</string>
+    <string name="download_started">Téléchargement démarré.</string>
+    <string name="download_error">Échec du téléchargement.</string>
+    <string name="download_blob_unsupported">Cet export doit être fait depuis un navigateur (Chrome), pas depuis l\'application.</string>
+</resources>
+

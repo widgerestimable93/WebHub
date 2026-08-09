@@ -17,7 +17,8 @@ var APP_SHELL = [
   "./css/styles.css",
   "./js/app.js",
   "./js/db.js",
-  "./icons/icon.svg"
+  "./icons/icon-192.png",
+  "./icons/icon-512.png"
 ];
 
 self.addEventListener("install", function (event) {
@@ -64,3 +65,4 @@ self.addEventListener("fetch", function (event) {
     })
   );
 });
+
