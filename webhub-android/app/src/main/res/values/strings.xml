@@ -1,9 +1,93 @@
 <resources>
     <string name="app_name">WebHub</string>
-    <string name="connection_error">Connexion impossible. Vérifiez votre accès Internet.</string>
-    <string name="offline_notice">Vous semblez hors ligne — affichage de la version en cache si disponible.</string>
+    <string name="app_slogan">Your Web Apps, One Place.</string>
+
+    <string name="search_hint">Rechercher une application…</string>
+    <string name="filter_all">Toutes</string>
+    <string name="filter_favorites">Favoris</string>
+    <string name="filter_recent">Récentes</string>
+    <string name="empty_state">Aucune Web App. Appuie sur + pour en ajouter une.</string>
+
+    <string name="action_open">Ouvrir</string>
+    <string name="action_edit">Modifier</string>
+    <string name="action_delete">Supprimer</string>
+    <string name="action_logout">Déconnexion</string>
+    <string name="action_clear_data">Vider les données</string>
+    <string name="action_favorite">Favori</string>
+    <string name="action_manager">Gestionnaire</string>
+    <string name="action_settings">Paramètres</string>
+    <string name="action_add">Ajouter une Web App</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="action_save">Enregistrer</string>
+    <string name="action_retry">Réessayer</string>
+    <string name="action_back_to_hub">Retour à WebHub</string>
+
+    <string name="dialog_add_title">Ajouter une Web App</string>
+    <string name="dialog_edit_title">Modifier la Web App</string>
+    <string name="field_name">Nom de l\'application</string>
+    <string name="field_description">Description</string>
+    <string name="field_url">URL (https://…)</string>
+    <string name="field_icon">Icône (emoji)</string>
+    <string name="field_category">Catégorie</string>
+    <string name="field_color">Couleur</string>
+    <string name="error_name_required">Le nom est obligatoire.</string>
+    <string name="error_invalid_url">URL invalide. Veuillez utiliser une adresse HTTPS valide.</string>
+
+    <string name="delete_confirm_title">Supprimer cette Web App ?</string>
+    <string name="delete_confirm_message">Cela supprimera également ses données locales et sa session. Les autres Web Apps ne sont pas affectées.</string>
+
+    <string name="logout_confirm_title">Déconnexion</string>
+    <string name="logout_confirm_message">Effacer les cookies et les données de session de cette Web App uniquement ?</string>
+    <string name="logout_done">Session déconnectée pour %1$s.</string>
+
+    <string name="clear_data_confirm_title">Vider les données</string>
+    <string name="clear_data_confirm_message">Efface les cookies et le stockage local de cette Web App uniquement.</string>
+
+    <string name="status_active">● Active</string>
+    <string name="status_inactive">● Inactive</string>
+
+    <string name="external_link_title">Lien externe détecté</string>
+    <string name="external_link_message">Cette page essaie d\'ouvrir un site en dehors de %1$s :\n%2$s</string>
+    <string name="external_link_open_webhub">Ouvrir dans WebHub</string>
+    <string name="external_link_open_browser">Ouvrir dans le navigateur</string>
+
+    <string name="connection_error_title">Impossible de charger cette application.</string>
+    <string name="connection_error_message">Vérifiez votre connexion Internet.</string>
+    <string name="offline_notice">Connexion Internet nécessaire pour cette Web App.</string>
+
     <string name="download_started">Téléchargement démarré.</string>
     <string name="download_error">Échec du téléchargement.</string>
-    <string name="download_blob_unsupported">Cet export doit être fait depuis un navigateur (Chrome), pas depuis l\'application.</string>
+    <string name="download_blob_unsupported">Cet export doit être fait depuis un navigateur, pas depuis l\'application.</string>
+
+    <string name="settings_appearance">Apparence</string>
+    <string name="settings_theme_light">Mode clair</string>
+    <string name="settings_theme_dark">Mode sombre</string>
+    <string name="settings_theme_system">Système</string>
+    <string name="settings_applications">Applications</string>
+    <string name="settings_manager">Gestionnaire Web Apps</string>
+    <string name="settings_clear_all_caches">Vider tous les caches</string>
+    <string name="settings_reset">Réinitialiser WebHub</string>
+    <string name="settings_data">Données</string>
+    <string name="settings_export">Exporter mes applications</string>
+    <string name="settings_import">Importer une sauvegarde</string>
+    <string name="settings_about">À propos</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_developer">Développeur</string>
+    <string name="settings_license">Licence</string>
+
+    <string name="action_fullscreen">Plein écran</string>
+    <string name="action_share">Partager</string>
+
+    <string name="reset_confirm_title">Réinitialiser WebHub</string>
+    <string name="reset_confirm_message">Cette opération supprimera toutes les Web Apps, leurs configurations et leurs données locales. Cette action est irréversible.</string>
+    <string name="reset_confirm_action">Réinitialiser</string>
+
+    <string name="export_success">Sauvegarde exportée.</string>
+    <string name="import_success">Sauvegarde importée.</string>
+    <string name="import_error">Fichier de sauvegarde invalide.</string>
+
+    <string name="permission_camera_rationale">Cette Web App demande l\'accès à la caméra.</string>
+    <string name="permission_mic_rationale">Cette Web App demande l\'accès au microphone.</string>
+    <string name="permission_location_rationale">Cette Web App demande votre position.</string>
 </resources>
 

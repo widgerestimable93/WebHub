@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/menu_fullscreen"
+        android:title="@string/action_fullscreen"
+        android:icon="@drawable/ic_fullscreen"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/menu_share"
+        android:title="@string/action_share"
+        android:icon="@drawable/ic_share"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/menu_open_browser"
+        android:title="@string/external_link_open_browser"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/menu_clear_cache"
+        android:title="@string/settings_clear_all_caches"
+        app:showAsAction="never" />
+</menu>
+

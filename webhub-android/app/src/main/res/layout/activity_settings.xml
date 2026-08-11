@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="?android:attr/windowBackground">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/primary_navy"
+        app:titleTextColor="@color/white"
+        app:navigationIcon="@drawable/ic_back"
+        app:navigationIconTint="@color/white"
+        app:title="@string/action_settings" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView style="@style/SettingsSectionTitle" android:text="@string/settings_appearance" />
+            <RadioGroup
+                android:id="@+id/radio_theme"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp">
+                <RadioButton android:id="@+id/radio_light" android:text="@string/settings_theme_light" android:layout_width="match_parent" android:layout_height="wrap_content" />
+                <RadioButton android:id="@+id/radio_dark" android:text="@string/settings_theme_dark" android:layout_width="match_parent" android:layout_height="wrap_content" />
+                <RadioButton android:id="@+id/radio_system" android:text="@string/settings_theme_system" android:layout_width="match_parent" android:layout_height="wrap_content" />
+            </RadioGroup>
+
+            <TextView style="@style/SettingsSectionTitle" android:text="@string/settings_applications" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_manager"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/settings_manager" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_clear_caches"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/settings_clear_all_caches" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_reset"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                app:strokeColor="@color/danger"
+                android:textColor="@color/danger"
+                android:text="@string/settings_reset"
+                android:layout_marginBottom="16dp" />
+
+            <TextView style="@style/SettingsSectionTitle" android:text="@string/settings_data" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_export"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/settings_export" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_import"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="16dp"
+                android:text="@string/settings_import" />
+
+            <TextView style="@style/SettingsSectionTitle" android:text="@string/settings_about" />
+            <TextView
+                android:id="@+id/text_about"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:lineSpacingExtra="4dp"
+                android:textColor="?android:attr/textColorSecondary"
+                tools:text="Version 2.0.0\nDéveloppeur : Widger\nLicence : MIT" />
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
+
