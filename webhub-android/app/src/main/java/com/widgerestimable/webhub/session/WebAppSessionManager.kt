@@ -82,18 +82,21 @@ object WebAppSessionManager {
 
     private fun clearWebStorageForOrigin(origin: String, onDone: () -> Unit) {
         val storage = WebStorage.getInstance()
-        storage.getOrigins(ValueCallback { originsMap ->
-            val matchKey = originsMap?.keys?.firstOrNull { key ->
-                key.trimEnd('/') == origin.trimEnd('/')
+        val callback = object : ValueCallback<Map<String, WebStorage.Origin>> {
+            override fun onReceiveValue(originsMap: Map<String, WebStorage.Origin>?) {
+                val matchKey = originsMap?.keys?.firstOrNull { key ->
+                    key.trimEnd('/') == origin.trimEnd('/')
+                }
+                if (matchKey != null) {
+                    storage.deleteOrigin(matchKey)
+                } else {
+                    // Repli : tente quand même la suppression avec l'origine construite.
+                    storage.deleteOrigin(origin)
+                }
+                onDone()
             }
-            if (matchKey != null) {
-                storage.deleteOrigin(matchKey)
-            } else {
-                // Repli : tente quand même la suppression avec l'origine construite.
-                storage.deleteOrigin(origin)
-            }
-            onDone()
-        })
+        }
+        storage.getOrigins(callback)
     }
 
     /**
