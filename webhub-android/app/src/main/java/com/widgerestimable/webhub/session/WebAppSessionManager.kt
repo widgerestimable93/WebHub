@@ -82,21 +82,24 @@ object WebAppSessionManager {
 
     private fun clearWebStorageForOrigin(origin: String, onDone: () -> Unit) {
         val storage = WebStorage.getInstance()
-        val callback = object : ValueCallback<Map<String, WebStorage.Origin>> {
-            override fun onReceiveValue(originsMap: Map<String, WebStorage.Origin>?) {
-                val matchKey = originsMap?.keys?.firstOrNull { key ->
-                    key.trimEnd('/') == origin.trimEnd('/')
-                }
-                if (matchKey != null) {
-                    storage.deleteOrigin(matchKey)
-                } else {
-                    // Repli : tente quand même la suppression avec l'origine construite.
-                    storage.deleteOrigin(origin)
-                }
-                onDone()
+        // WebStorage.getOrigins() expose côté Android un ValueCallback<Map> en
+        // type Java brut (sans generics) : on passe par une lambda directe
+        // (conversion SAM la plus tolérante pour Kotlin face à ce type brut)
+        // puis on caste prudemment son contenu.
+        storage.getOrigins { rawOriginsMap ->
+            @Suppress("UNCHECKED_CAST")
+            val originsMap = rawOriginsMap as? Map<String, WebStorage.Origin>
+            val matchKey = originsMap?.keys?.firstOrNull { key ->
+                key.trimEnd('/') == origin.trimEnd('/')
             }
+            if (matchKey != null) {
+                storage.deleteOrigin(matchKey)
+            } else {
+                // Repli : tente quand même la suppression avec l'origine construite.
+                storage.deleteOrigin(origin)
+            }
+            onDone()
         }
-        storage.getOrigins(callback)
     }
 
     /**
