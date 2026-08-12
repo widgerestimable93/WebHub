@@ -111,6 +111,19 @@
       });
     },
 
+    /** Supprime toutes les Web Apps ET tous les paramètres (réinitialisation complète). */
+    resetAll: function () {
+      return openDb().then(function (db) {
+        return new Promise(function (resolve, reject) {
+          var t = db.transaction([STORE_APPS, STORE_SETTINGS], "readwrite");
+          t.objectStore(STORE_APPS).clear();
+          t.objectStore(STORE_SETTINGS).clear();
+          t.oncomplete = function () { resolve(); };
+          t.onerror = function () { reject(t.error); };
+        });
+      });
+    },
+
     /** Exporte l'intégralité des données WebHub (apps + paramètres) en JSON. */
     exportAll: function () {
       return Promise.all([
@@ -147,3 +160,4 @@
 
   global.WebHubDB = WebHubDB;
 })(window);
+

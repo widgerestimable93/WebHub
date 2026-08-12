@@ -126,6 +126,7 @@
     el.importBtn = document.getElementById("import-btn");
     el.installBtn = document.getElementById("install-btn");
     el.versionLabel = document.getElementById("version-label");
+    el.resetBtn = document.getElementById("reset-btn");
   }
 
   function bindEvents() {
@@ -192,6 +193,7 @@
     });
 
     el.clearCacheBtn.addEventListener("click", clearAppCache);
+    el.resetBtn.addEventListener("click", resetWebHub);
     el.exportBtn.addEventListener("click", exportData);
     el.importBtn.addEventListener("click", function () { el.importInput.click(); });
     el.importInput.addEventListener("change", importData);
@@ -532,6 +534,18 @@
     }
   }
 
+  function resetWebHub() {
+    if (!window.confirm("Cette opération supprimera toutes les Web Apps, leurs configurations et leurs données locales. Cette action est irréversible. Continuer ?")) return;
+    WebHubDB.resetAll().then(function () {
+      showToast("WebHub a été réinitialisé.");
+      closeSettings();
+      loadApps();
+    }).catch(function (err) {
+      console.error(err);
+      showToast("Erreur lors de la réinitialisation.");
+    });
+  }
+
   function exportData() {
     WebHubDB.exportAll().then(function (data) {
       var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -612,3 +626,4 @@
 
   function escapeAttr(str) { return escapeHtml(str); }
 })();
+
