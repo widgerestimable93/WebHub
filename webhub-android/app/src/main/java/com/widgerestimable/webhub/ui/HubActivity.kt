@@ -2,8 +2,11 @@ package com.widgerestimable.webhub.ui
 
 import android.app.AlertDialog
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -27,6 +30,24 @@ class HubActivity : AppCompatActivity() {
 
     private var query: String = ""
     private var filter: String = "all" // all | favorites | recent
+
+    // Sélection d'une image d'icône : le Photo Picker Android est enregistré une
+    // seule fois ici (obligatoire avant STARTED) et son résultat est redirigé vers
+    // le callback attendu par AddEditWebAppDialog au moment de l'appel.
+    private var pendingIconCallback: ((Uri) -> Unit)? = null
+    private val pickIconLauncher = registerForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) pendingIconCallback?.invoke(uri)
+        pendingIconCallback = null
+    }
+
+    private fun launchIconPicker(onPicked: (Uri) -> Unit) {
+        pendingIconCallback = onPicked
+        pickIconLauncher.launch(
+            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         ThemeManager.apply(this)
@@ -71,7 +92,7 @@ class HubActivity : AppCompatActivity() {
         }
 
         findViewById<FloatingActionButton>(R.id.fab_add).setOnClickListener {
-            AddEditWebAppDialog.show(this, null) { refresh() }
+            AddEditWebAppDialog.show(this, null, pickImage = ::launchIconPicker) { refresh() }
         }
 
         findViewById<android.widget.ImageButton>(R.id.btn_settings).setOnClickListener {
@@ -107,7 +128,7 @@ class HubActivity : AppCompatActivity() {
 
     private fun openApp(entry: WebAppEntry) {
         if (entry.url.isBlank()) {
-            AddEditWebAppDialog.show(this, entry) { refresh() }
+            AddEditWebAppDialog.show(this, entry, pickImage = ::launchIconPicker) { refresh() }
             return
         }
         repo.markOpened(entry.id)
@@ -117,7 +138,7 @@ class HubActivity : AppCompatActivity() {
     }
 
     private fun editApp(entry: WebAppEntry) {
-        AddEditWebAppDialog.show(this, entry) { refresh() }
+        AddEditWebAppDialog.show(this, entry, pickImage = ::launchIconPicker) { refresh() }
     }
 
     private fun toggleFavorite(entry: WebAppEntry) {

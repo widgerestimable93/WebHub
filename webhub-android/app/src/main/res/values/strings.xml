@@ -27,7 +27,10 @@
     <string name="field_name">Nom de l\'application</string>
     <string name="field_description">Description</string>
     <string name="field_url">URL (https://…)</string>
-    <string name="field_icon">Icône (emoji)</string>
+    <string name="field_icon_image">Icône de l\'application</string>
+    <string name="field_icon">Emoji de secours (si aucune image)</string>
+    <string name="action_choose_icon_image">Choisir une image</string>
+    <string name="action_remove_icon_image">Retirer l\'image</string>
     <string name="field_category">Catégorie</string>
     <string name="field_color">Couleur</string>
     <string name="error_name_required">Le nom est obligatoire.</string>

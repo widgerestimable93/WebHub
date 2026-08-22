@@ -14,6 +14,10 @@ data class WebAppEntry(
     var description: String,
     var url: String,
     var iconEmoji: String,
+    /** Chemin absolu, dans le stockage interne de l'app, vers une image choisie par
+     *  l'utilisateur pour cette Web App. Prioritaire sur [iconEmoji] à l'affichage
+     *  quand renseigné et que le fichier existe encore. Null = utiliser l'emoji. */
+    var iconImagePath: String? = null,
     var color: String,
     var category: String,
     var favorite: Boolean = false,

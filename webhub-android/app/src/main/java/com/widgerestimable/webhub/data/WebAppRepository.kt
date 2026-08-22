@@ -17,7 +17,8 @@ import java.util.UUID
  */
 class WebAppRepository private constructor(context: Context) {
 
-    private val prefs = context.applicationContext
+    private val appContext = context.applicationContext
+    private val prefs = appContext
         .getSharedPreferences("webhub_apps", Context.MODE_PRIVATE)
     private val gson = Gson()
     private val listType = object : TypeToken<MutableList<WebAppEntry>>() {}.type
@@ -94,6 +95,7 @@ class WebAppRepository private constructor(context: Context) {
         val apps = getAll()
         apps.removeAll { it.id == id }
         saveAll(apps)
+        com.widgerestimable.webhub.utils.IconStorage.deleteIcon(appContext, id)
     }
 
     fun markOpened(id: String) {

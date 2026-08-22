@@ -44,6 +44,7 @@ class WebAppAdapter(
 
     inner class VH(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val blob = itemView.findViewById<android.widget.TextView>(R.id.blob_icon)
+        private val blobImage = itemView.findViewById<com.google.android.material.imageview.ShapeableImageView>(R.id.blob_icon_image)
         private val name = itemView.findViewById<android.widget.TextView>(R.id.text_name)
         private val description = itemView.findViewById<android.widget.TextView>(R.id.text_description)
         private val status = itemView.findViewById<android.widget.TextView>(R.id.text_status)
@@ -52,14 +53,23 @@ class WebAppAdapter(
         private val btnMore = itemView.findViewById<android.widget.ImageButton>(R.id.btn_more)
 
         fun bind(entry: WebAppEntry) {
-            blob.text = entry.iconEmoji.ifBlank { entry.name.take(1).uppercase() }
-            try {
-                blob.background.mutate()
-                android.graphics.drawable.GradientDrawable().apply {
-                    cornerRadius = 14f * itemView.resources.displayMetrics.density
-                    setColor(Color.parseColor(entry.color.ifBlank { "#14315C" }))
-                }.also { blob.background = it }
-            } catch (e: Exception) { /* couleur invalide -> conserve le fond par défaut */ }
+            val iconFile = entry.iconImagePath?.let { java.io.File(it) }
+            if (iconFile != null && iconFile.exists()) {
+                blobImage.setImageURI(android.net.Uri.fromFile(iconFile))
+                blobImage.visibility = View.VISIBLE
+                blob.visibility = View.GONE
+            } else {
+                blobImage.visibility = View.GONE
+                blob.visibility = View.VISIBLE
+                blob.text = entry.iconEmoji.ifBlank { entry.name.take(1).uppercase() }
+                try {
+                    blob.background.mutate()
+                    android.graphics.drawable.GradientDrawable().apply {
+                        cornerRadius = 14f * itemView.resources.displayMetrics.density
+                        setColor(Color.parseColor(entry.color.ifBlank { "#14315C" }))
+                    }.also { blob.background = it }
+                } catch (e: Exception) { /* couleur invalide -> conserve le fond par défaut */ }
+            }
 
             name.text = entry.name
             description.text = entry.description

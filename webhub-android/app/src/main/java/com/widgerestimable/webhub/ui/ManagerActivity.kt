@@ -1,8 +1,11 @@
 package com.widgerestimable.webhub.ui
 
 import android.app.AlertDialog
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -17,6 +20,21 @@ class ManagerActivity : AppCompatActivity() {
 
     private lateinit var repo: WebAppRepository
     private lateinit var adapter: WebAppAdapter
+
+    private var pendingIconCallback: ((Uri) -> Unit)? = null
+    private val pickIconLauncher = registerForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) pendingIconCallback?.invoke(uri)
+        pendingIconCallback = null
+    }
+
+    private fun launchIconPicker(onPicked: (Uri) -> Unit) {
+        pendingIconCallback = onPicked
+        pickIconLauncher.launch(
+            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         ThemeManager.apply(this)
@@ -37,7 +55,7 @@ class ManagerActivity : AppCompatActivity() {
                     startActivity(intent)
                 }
             },
-            onEdit = { AddEditWebAppDialog.show(this, it) { refresh() } },
+            onEdit = { AddEditWebAppDialog.show(this, it, pickImage = ::launchIconPicker) { refresh() } },
             onDelete = { confirmDelete(it) },
             onToggleFavorite = { it.favorite = !it.favorite; repo.update(it); refresh() },
             onLogout = { confirmLogout(it) },
