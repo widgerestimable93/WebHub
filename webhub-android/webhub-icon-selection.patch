@@ -1,0 +1,557 @@
+diff --git a/webhub-android/app/src/main/java/com/widgerestimable/webhub/data/WebAppEntry.kt b/webhub-android/app/src/main/java/com/widgerestimable/webhub/data/WebAppEntry.kt
+index 45357ee..0969357 100644
+--- a/webhub-android/app/src/main/java/com/widgerestimable/webhub/data/WebAppEntry.kt
++++ b/webhub-android/app/src/main/java/com/widgerestimable/webhub/data/WebAppEntry.kt
+@@ -14,6 +14,10 @@ data class WebAppEntry(
+     var description: String,
+     var url: String,
+     var iconEmoji: String,
++    /** Chemin absolu, dans le stockage interne de l'app, vers une image choisie par
++     *  l'utilisateur pour cette Web App. Prioritaire sur [iconEmoji] à l'affichage
++     *  quand renseigné et que le fichier existe encore. Null = utiliser l'emoji. */
++    var iconImagePath: String? = null,
+     var color: String,
+     var category: String,
+     var favorite: Boolean = false,
+diff --git a/webhub-android/app/src/main/java/com/widgerestimable/webhub/data/WebAppRepository.kt b/webhub-android/app/src/main/java/com/widgerestimable/webhub/data/WebAppRepository.kt
+index 264b57a..b62a870 100644
+--- a/webhub-android/app/src/main/java/com/widgerestimable/webhub/data/WebAppRepository.kt
++++ b/webhub-android/app/src/main/java/com/widgerestimable/webhub/data/WebAppRepository.kt
+@@ -17,7 +17,8 @@ import java.util.UUID
+  */
+ class WebAppRepository private constructor(context: Context) {
+ 
+-    private val prefs = context.applicationContext
++    private val appContext = context.applicationContext
++    private val prefs = appContext
+         .getSharedPreferences("webhub_apps", Context.MODE_PRIVATE)
+     private val gson = Gson()
+     private val listType = object : TypeToken<MutableList<WebAppEntry>>() {}.type
+@@ -94,6 +95,7 @@ class WebAppRepository private constructor(context: Context) {
+         val apps = getAll()
+         apps.removeAll { it.id == id }
+         saveAll(apps)
++        com.widgerestimable.webhub.utils.IconStorage.deleteIcon(appContext, id)
+     }
+ 
+     fun markOpened(id: String) {
+diff --git a/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/AddEditWebAppDialog.kt b/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/AddEditWebAppDialog.kt
+index 93df0a9..a95faa0 100644
+--- a/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/AddEditWebAppDialog.kt
++++ b/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/AddEditWebAppDialog.kt
+@@ -4,15 +4,19 @@ import android.app.AlertDialog
+ import android.content.Context
+ import android.graphics.Color
+ import android.graphics.drawable.GradientDrawable
++import android.net.Uri
+ import android.view.LayoutInflater
+ import android.view.View
+ import android.widget.CheckBox
+ import android.widget.LinearLayout
++import com.google.android.material.imageview.ShapeableImageView
+ import com.google.android.material.textfield.TextInputEditText
+ import com.widgerestimable.webhub.R
+ import com.widgerestimable.webhub.data.WebAppEntry
+ import com.widgerestimable.webhub.data.WebAppRepository
++import com.widgerestimable.webhub.utils.IconStorage
+ import com.widgerestimable.webhub.utils.UrlValidator
++import java.io.File
+ 
+ /**
+  * Boîte de dialogue d'ajout/édition — pas de DialogFragment ici pour rester
+@@ -26,9 +30,18 @@ object AddEditWebAppDialog {
+         "#8E44AD", "#E4572E", "#2C7BE5", "#455A64"
+     )
+ 
++    /**
++     * @param pickImage Fonction fournie par l'Activity appelante (HubActivity /
++     *   ManagerActivity) qui déclenche le sélecteur d'image système (Photo Picker)
++     *   et transmet l'[Uri] choisie au callback reçu en paramètre. L'Activity doit
++     *   posséder un [androidx.activity.result.ActivityResultLauncher] déjà
++     *   enregistré — voir HubActivity/ManagerActivity. Si null, le bouton
++     *   "Choisir une image" est masqué et seul l'emoji reste disponible.
++     */
+     fun show(
+         context: Context,
+         existing: WebAppEntry?,
++        pickImage: ((onPicked: (Uri) -> Unit) -> Unit)? = null,
+         onSaved: (WebAppEntry) -> Unit
+     ) {
+         val view = LayoutInflater.from(context).inflate(R.layout.dialog_add_edit_webapp, null)
+@@ -40,6 +53,9 @@ object AddEditWebAppDialog {
+         val inputCategory = view.findViewById<TextInputEditText>(R.id.input_category)
+         val colorRow = view.findViewById<LinearLayout>(R.id.color_row)
+         val checkboxFavorite = view.findViewById<CheckBox>(R.id.checkbox_favorite)
++        val iconPreview = view.findViewById<ShapeableImageView>(R.id.icon_preview)
++        val btnPickIcon = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_pick_icon)
++        val btnRemoveIcon = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_remove_icon)
+ 
+         inputName.setText(existing?.name ?: "")
+         inputDescription.setText(existing?.description ?: "")
+@@ -48,6 +64,43 @@ object AddEditWebAppDialog {
+         inputCategory.setText(existing?.category ?: "")
+         checkboxFavorite.isChecked = existing?.favorite ?: false
+ 
++        // --- Icône personnalisée (image) ---
++        // pickedIconUri : nouvelle image choisie pendant cette session du dialogue (pas encore copiée).
++        // iconRemoved : l'utilisateur a explicitement retiré l'image existante -> retour à l'emoji.
++        var pickedIconUri: Uri? = null
++        var iconRemoved = false
++
++        fun updateIconPreviewVisibility(hasImage: Boolean) {
++            iconPreview.visibility = if (hasImage) View.VISIBLE else View.GONE
++            btnRemoveIcon.visibility = if (hasImage) View.VISIBLE else View.GONE
++        }
++
++        val existingIconFile = existing?.iconImagePath?.let { File(it) }
++        if (existingIconFile != null && existingIconFile.exists()) {
++            iconPreview.setImageURI(Uri.fromFile(existingIconFile))
++            updateIconPreviewVisibility(true)
++        } else {
++            updateIconPreviewVisibility(false)
++        }
++
++        if (pickImage == null) {
++            btnPickIcon.visibility = View.GONE
++        } else {
++            btnPickIcon.setOnClickListener {
++                pickImage { uri ->
++                    pickedIconUri = uri
++                    iconRemoved = false
++                    iconPreview.setImageURI(uri)
++                    updateIconPreviewVisibility(true)
++                }
++            }
++        }
++        btnRemoveIcon.setOnClickListener {
++            pickedIconUri = null
++            iconRemoved = true
++            updateIconPreviewVisibility(false)
++        }
++
+         var selectedColor = existing?.color?.takeIf { it.isNotBlank() } ?: swatches[0]
+         val swatchViews = mutableListOf<View>()
+ 
+@@ -102,20 +155,38 @@ object AddEditWebAppDialog {
+                 urlError.visibility = View.GONE
+ 
+                 val repo = WebAppRepository.getInstance(context)
++                val entryId = existing?.id ?: repo.generateId(name)
++
++                // Résout le chemin d'icône final AVANT de construire/mettre à jour l'entrée :
++                // - une nouvelle image a été choisie -> on la copie dans le stockage interne ;
++                // - l'utilisateur a retiré l'image -> on supprime le fichier et on revient à l'emoji ;
++                // - sinon -> on conserve ce qui existait déjà (ou null pour une nouvelle Web App).
++                val finalIconPath: String? = when {
++                    pickedIconUri != null -> IconStorage.saveIcon(context, entryId, pickedIconUri!!)
++                        ?: existing?.iconImagePath
++                    iconRemoved -> {
++                        IconStorage.deleteIcon(context, entryId)
++                        null
++                    }
++                    else -> existing?.iconImagePath
++                }
++
+                 val entry = existing?.apply {
+                     this.name = name
+                     this.description = inputDescription.text?.toString()?.trim().orEmpty()
+                     this.url = url
+                     this.iconEmoji = inputIcon.text?.toString()?.trim().orEmpty()
++                    this.iconImagePath = finalIconPath
+                     this.category = inputCategory.text?.toString()?.trim().orEmpty()
+                     this.color = selectedColor
+                     this.favorite = checkboxFavorite.isChecked
+                 } ?: WebAppEntry(
+-                    id = repo.generateId(name),
++                    id = entryId,
+                     name = name,
+                     description = inputDescription.text?.toString()?.trim().orEmpty(),
+                     url = url,
+                     iconEmoji = inputIcon.text?.toString()?.trim().orEmpty(),
++                    iconImagePath = finalIconPath,
+                     color = selectedColor,
+                     category = inputCategory.text?.toString()?.trim().orEmpty(),
+                     favorite = checkboxFavorite.isChecked
+@@ -130,4 +201,3 @@ object AddEditWebAppDialog {
+         dialog.show()
+     }
+ }
+-
+diff --git a/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/HubActivity.kt b/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/HubActivity.kt
+index a431b57..a045686 100644
+--- a/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/HubActivity.kt
++++ b/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/HubActivity.kt
+@@ -2,8 +2,11 @@ package com.widgerestimable.webhub.ui
+ 
+ import android.app.AlertDialog
+ import android.content.Intent
++import android.net.Uri
+ import android.os.Bundle
+ import android.view.View
++import androidx.activity.result.PickVisualMediaRequest
++import androidx.activity.result.contract.ActivityResultContracts
+ import androidx.appcompat.app.AppCompatActivity
+ import androidx.recyclerview.widget.LinearLayoutManager
+ import androidx.recyclerview.widget.RecyclerView
+@@ -28,6 +31,24 @@ class HubActivity : AppCompatActivity() {
+     private var query: String = ""
+     private var filter: String = "all" // all | favorites | recent
+ 
++    // Sélection d'une image d'icône : le Photo Picker Android est enregistré une
++    // seule fois ici (obligatoire avant STARTED) et son résultat est redirigé vers
++    // le callback attendu par AddEditWebAppDialog au moment de l'appel.
++    private var pendingIconCallback: ((Uri) -> Unit)? = null
++    private val pickIconLauncher = registerForActivityResult(
++        ActivityResultContracts.PickVisualMedia()
++    ) { uri ->
++        if (uri != null) pendingIconCallback?.invoke(uri)
++        pendingIconCallback = null
++    }
++
++    private fun launchIconPicker(onPicked: (Uri) -> Unit) {
++        pendingIconCallback = onPicked
++        pickIconLauncher.launch(
++            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
++        )
++    }
++
+     override fun onCreate(savedInstanceState: Bundle?) {
+         ThemeManager.apply(this)
+         super.onCreate(savedInstanceState)
+@@ -71,7 +92,7 @@ class HubActivity : AppCompatActivity() {
+         }
+ 
+         findViewById<FloatingActionButton>(R.id.fab_add).setOnClickListener {
+-            AddEditWebAppDialog.show(this, null) { refresh() }
++            AddEditWebAppDialog.show(this, null, pickImage = ::launchIconPicker) { refresh() }
+         }
+ 
+         findViewById<android.widget.ImageButton>(R.id.btn_settings).setOnClickListener {
+@@ -107,7 +128,7 @@ class HubActivity : AppCompatActivity() {
+ 
+     private fun openApp(entry: WebAppEntry) {
+         if (entry.url.isBlank()) {
+-            AddEditWebAppDialog.show(this, entry) { refresh() }
++            AddEditWebAppDialog.show(this, entry, pickImage = ::launchIconPicker) { refresh() }
+             return
+         }
+         repo.markOpened(entry.id)
+@@ -117,7 +138,7 @@ class HubActivity : AppCompatActivity() {
+     }
+ 
+     private fun editApp(entry: WebAppEntry) {
+-        AddEditWebAppDialog.show(this, entry) { refresh() }
++        AddEditWebAppDialog.show(this, entry, pickImage = ::launchIconPicker) { refresh() }
+     }
+ 
+     private fun toggleFavorite(entry: WebAppEntry) {
+diff --git a/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/ManagerActivity.kt b/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/ManagerActivity.kt
+index 838ac18..079f19c 100644
+--- a/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/ManagerActivity.kt
++++ b/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/ManagerActivity.kt
+@@ -1,8 +1,11 @@
+ package com.widgerestimable.webhub.ui
+ 
+ import android.app.AlertDialog
++import android.net.Uri
+ import android.os.Bundle
+ import android.view.View
++import androidx.activity.result.PickVisualMediaRequest
++import androidx.activity.result.contract.ActivityResultContracts
+ import androidx.appcompat.app.AppCompatActivity
+ import androidx.appcompat.widget.Toolbar
+ import androidx.recyclerview.widget.LinearLayoutManager
+@@ -18,6 +21,21 @@ class ManagerActivity : AppCompatActivity() {
+     private lateinit var repo: WebAppRepository
+     private lateinit var adapter: WebAppAdapter
+ 
++    private var pendingIconCallback: ((Uri) -> Unit)? = null
++    private val pickIconLauncher = registerForActivityResult(
++        ActivityResultContracts.PickVisualMedia()
++    ) { uri ->
++        if (uri != null) pendingIconCallback?.invoke(uri)
++        pendingIconCallback = null
++    }
++
++    private fun launchIconPicker(onPicked: (Uri) -> Unit) {
++        pendingIconCallback = onPicked
++        pickIconLauncher.launch(
++            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
++        )
++    }
++
+     override fun onCreate(savedInstanceState: Bundle?) {
+         ThemeManager.apply(this)
+         super.onCreate(savedInstanceState)
+@@ -37,7 +55,7 @@ class ManagerActivity : AppCompatActivity() {
+                     startActivity(intent)
+                 }
+             },
+-            onEdit = { AddEditWebAppDialog.show(this, it) { refresh() } },
++            onEdit = { AddEditWebAppDialog.show(this, it, pickImage = ::launchIconPicker) { refresh() } },
+             onDelete = { confirmDelete(it) },
+             onToggleFavorite = { it.favorite = !it.favorite; repo.update(it); refresh() },
+             onLogout = { confirmLogout(it) },
+diff --git a/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/WebAppAdapter.kt b/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/WebAppAdapter.kt
+index 2351e89..aec44a9 100644
+--- a/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/WebAppAdapter.kt
++++ b/webhub-android/app/src/main/java/com/widgerestimable/webhub/ui/WebAppAdapter.kt
+@@ -44,6 +44,7 @@ class WebAppAdapter(
+ 
+     inner class VH(itemView: View) : RecyclerView.ViewHolder(itemView) {
+         private val blob = itemView.findViewById<android.widget.TextView>(R.id.blob_icon)
++        private val blobImage = itemView.findViewById<com.google.android.material.imageview.ShapeableImageView>(R.id.blob_icon_image)
+         private val name = itemView.findViewById<android.widget.TextView>(R.id.text_name)
+         private val description = itemView.findViewById<android.widget.TextView>(R.id.text_description)
+         private val status = itemView.findViewById<android.widget.TextView>(R.id.text_status)
+@@ -52,14 +53,23 @@ class WebAppAdapter(
+         private val btnMore = itemView.findViewById<android.widget.ImageButton>(R.id.btn_more)
+ 
+         fun bind(entry: WebAppEntry) {
+-            blob.text = entry.iconEmoji.ifBlank { entry.name.take(1).uppercase() }
+-            try {
+-                blob.background.mutate()
+-                android.graphics.drawable.GradientDrawable().apply {
+-                    cornerRadius = 14f * itemView.resources.displayMetrics.density
+-                    setColor(Color.parseColor(entry.color.ifBlank { "#14315C" }))
+-                }.also { blob.background = it }
+-            } catch (e: Exception) { /* couleur invalide -> conserve le fond par défaut */ }
++            val iconFile = entry.iconImagePath?.let { java.io.File(it) }
++            if (iconFile != null && iconFile.exists()) {
++                blobImage.setImageURI(android.net.Uri.fromFile(iconFile))
++                blobImage.visibility = View.VISIBLE
++                blob.visibility = View.GONE
++            } else {
++                blobImage.visibility = View.GONE
++                blob.visibility = View.VISIBLE
++                blob.text = entry.iconEmoji.ifBlank { entry.name.take(1).uppercase() }
++                try {
++                    blob.background.mutate()
++                    android.graphics.drawable.GradientDrawable().apply {
++                        cornerRadius = 14f * itemView.resources.displayMetrics.density
++                        setColor(Color.parseColor(entry.color.ifBlank { "#14315C" }))
++                    }.also { blob.background = it }
++                } catch (e: Exception) { /* couleur invalide -> conserve le fond par défaut */ }
++            }
+ 
+             name.text = entry.name
+             description.text = entry.description
+diff --git a/webhub-android/app/src/main/java/com/widgerestimable/webhub/utils/IconStorage.kt b/webhub-android/app/src/main/java/com/widgerestimable/webhub/utils/IconStorage.kt
+new file mode 100644
+index 0000000..4439470
+--- /dev/null
++++ b/webhub-android/app/src/main/java/com/widgerestimable/webhub/utils/IconStorage.kt
+@@ -0,0 +1,76 @@
++package com.widgerestimable.webhub.utils
++
++import android.content.Context
++import android.graphics.Bitmap
++import android.graphics.BitmapFactory
++import android.net.Uri
++import java.io.File
++import java.io.FileOutputStream
++
++/**
++ * Gère la copie locale des icônes personnalisées choisies par l'utilisateur
++ * pour chaque Web App (voir [AddEditWebAppDialog]).
++ *
++ * L'image est copiée dans le stockage interne de l'app (`filesDir/icons/`)
++ * plutôt que référencée par son [Uri] d'origine : un `content://Uri` de la
++ * galerie peut devenir invalide après un redémarrage ou si le fichier
++ * source est déplacé/supprimé côté utilisateur. La copie locale est
++ * strictement liée à l'`id` de la Web App concernée — supprimer ou
++ * remplacer l'icône d'une Web App ne touche jamais celle des autres,
++ * conformément au principe d'isolation de WebHub.
++ */
++object IconStorage {
++
++    private const val MAX_DIMENSION_PX = 256
++
++    private fun iconsDir(context: Context): File =
++        File(context.filesDir, "icons").apply { if (!exists()) mkdirs() }
++
++    fun iconFile(context: Context, entryId: String): File =
++        File(iconsDir(context), "$entryId.png")
++
++    /**
++     * Copie et redimensionne l'image pointée par [sourceUri] vers le stockage
++     * interne, pour la Web App [entryId]. Retourne le chemin absolu du fichier
++     * créé, ou null en cas d'échec (image illisible, etc.).
++     */
++    fun saveIcon(context: Context, entryId: String, sourceUri: Uri): String? {
++        return try {
++            val input = context.contentResolver.openInputStream(sourceUri) ?: return null
++            val original = input.use { BitmapFactory.decodeStream(it) } ?: return null
++
++            val scale = MAX_DIMENSION_PX.toFloat() / maxOf(original.width, original.height)
++            val bitmap = if (scale < 1f) {
++                Bitmap.createScaledBitmap(
++                    original,
++                    (original.width * scale).toInt().coerceAtLeast(1),
++                    (original.height * scale).toInt().coerceAtLeast(1),
++                    true
++                )
++            } else original
++
++            val dest = iconFile(context, entryId)
++            FileOutputStream(dest).use { out ->
++                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
++            }
++            if (bitmap !== original) original.recycle()
++            dest.absolutePath
++        } catch (e: Exception) {
++            null
++        }
++    }
++
++    /** Supprime UNIQUEMENT l'icône de cette Web App — n'affecte jamais les autres. */
++    fun deleteIcon(context: Context, entryId: String) {
++        val f = iconFile(context, entryId)
++        if (f.exists()) f.delete()
++    }
++
++    /** Renomme le fichier d'icône si l'id de la Web App change (cas rare, non utilisé actuellement). */
++    fun renameIcon(context: Context, oldEntryId: String, newEntryId: String): String? {
++        val old = iconFile(context, oldEntryId)
++        if (!old.exists()) return null
++        val new = iconFile(context, newEntryId)
++        return if (old.renameTo(new)) new.absolutePath else null
++    }
++}
+diff --git a/webhub-android/app/src/main/res/layout/dialog_add_edit_webapp.xml b/webhub-android/app/src/main/res/layout/dialog_add_edit_webapp.xml
+index cd9b12c..32715ab 100644
+--- a/webhub-android/app/src/main/res/layout/dialog_add_edit_webapp.xml
++++ b/webhub-android/app/src/main/res/layout/dialog_add_edit_webapp.xml
+@@ -1,6 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+     xmlns:app="http://schemas.android.com/apk/res-auto"
++    xmlns:tools="http://schemas.android.com/tools"
+     android:layout_width="match_parent"
+     android:layout_height="wrap_content">
+ 
+@@ -53,6 +54,53 @@
+             android:textSize="12sp"
+             android:visibility="gone" />
+ 
++        <TextView
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"
++            android:layout_marginTop="16dp"
++            android:text="@string/field_icon_image"
++            android:textSize="12sp"
++            android:textColor="?android:attr/textColorSecondary" />
++
++        <LinearLayout
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"
++            android:orientation="horizontal"
++            android:gravity="center_vertical"
++            android:layout_marginTop="6dp">
++
++            <com.google.android.material.imageview.ShapeableImageView
++                android:id="@+id/icon_preview"
++                android:layout_width="52dp"
++                android:layout_height="52dp"
++                android:scaleType="centerCrop"
++                android:background="@drawable/bg_blob_rounded"
++                app:shapeAppearanceOverlay="@style/ShapeAppearance.WebHub.IconCorner"
++                android:visibility="gone"
++                tools:visibility="visible"
++                tools:src="@drawable/ic_star_filled" />
++
++            <com.google.android.material.button.MaterialButton
++                android:id="@+id/btn_pick_icon"
++                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:layout_marginStart="12dp"
++                android:text="@string/action_choose_icon_image"
++                android:textAllCaps="false"
++                android:textSize="12sp" />
++
++            <com.google.android.material.button.MaterialButton
++                android:id="@+id/btn_remove_icon"
++                style="@style/Widget.MaterialComponents.Button.TextButton"
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:text="@string/action_remove_icon_image"
++                android:textAllCaps="false"
++                android:textSize="12sp"
++                android:visibility="gone" />
++        </LinearLayout>
++
+         <com.google.android.material.textfield.TextInputLayout
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+diff --git a/webhub-android/app/src/main/res/layout/item_webapp.xml b/webhub-android/app/src/main/res/layout/item_webapp.xml
+index da1714a..aed2af6 100644
+--- a/webhub-android/app/src/main/res/layout/item_webapp.xml
++++ b/webhub-android/app/src/main/res/layout/item_webapp.xml
+@@ -17,14 +17,28 @@
+         android:padding="14dp"
+         android:gravity="center_vertical">
+ 
+-        <TextView
+-            android:id="@+id/blob_icon"
++        <FrameLayout
+             android:layout_width="52dp"
+-            android:layout_height="52dp"
+-            android:gravity="center"
+-            android:textSize="22sp"
+-            android:background="@drawable/bg_blob_rounded"
+-            tools:text="📚" />
++            android:layout_height="52dp">
++
++            <TextView
++                android:id="@+id/blob_icon"
++                android:layout_width="match_parent"
++                android:layout_height="match_parent"
++                android:gravity="center"
++                android:textSize="22sp"
++                android:background="@drawable/bg_blob_rounded"
++                tools:text="📚" />
++
++            <com.google.android.material.imageview.ShapeableImageView
++                android:id="@+id/blob_icon_image"
++                android:layout_width="match_parent"
++                android:layout_height="match_parent"
++                android:scaleType="centerCrop"
++                app:shapeAppearanceOverlay="@style/ShapeAppearance.WebHub.IconCorner"
++                android:visibility="gone"
++                tools:visibility="visible" />
++        </FrameLayout>
+ 
+         <LinearLayout
+             android:layout_width="0dp"
+diff --git a/webhub-android/app/src/main/res/values/strings.xml b/webhub-android/app/src/main/res/values/strings.xml
+index f8b69e9..3c90631 100644
+--- a/webhub-android/app/src/main/res/values/strings.xml
++++ b/webhub-android/app/src/main/res/values/strings.xml
+@@ -27,7 +27,10 @@
+     <string name="field_name">Nom de l\'application</string>
+     <string name="field_description">Description</string>
+     <string name="field_url">URL (https://…)</string>
+-    <string name="field_icon">Icône (emoji)</string>
++    <string name="field_icon_image">Icône de l\'application</string>
++    <string name="field_icon">Emoji de secours (si aucune image)</string>
++    <string name="action_choose_icon_image">Choisir une image</string>
++    <string name="action_remove_icon_image">Retirer l\'image</string>
+     <string name="field_category">Catégorie</string>
+     <string name="field_color">Couleur</string>
+     <string name="error_name_required">Le nom est obligatoire.</string>
+diff --git a/webhub-android/app/src/main/res/values/themes.xml b/webhub-android/app/src/main/res/values/themes.xml
+index f5e025c..947d004 100644
+--- a/webhub-android/app/src/main/res/values/themes.xml
++++ b/webhub-android/app/src/main/res/values/themes.xml
+@@ -14,6 +14,10 @@
+         <item name="android:statusBarColor" tools:targetApi="lollipop">@color/primary_navy</item>
+     </style>
+ 
++    <style name="ShapeAppearance.WebHub.IconCorner" parent="ShapeAppearance.MaterialComponents.SmallComponent">
++        <item name="cornerSize">14dp</item>
++    </style>
++
+     <style name="SettingsSectionTitle">
+         <item name="android:layout_width">wrap_content</item>
+         <item name="android:layout_height">wrap_content</item>
